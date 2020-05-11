@@ -178,14 +178,14 @@ def stream_name_to_dict(stream_name, separator='-'):
     table_name = stream_name
 
     # Schema and table name can be derived from stream if it's in <schema_nama>-<table_name> format
-    s = stream_name.split(separator)
-    if len(s) == 2:
-        schema_name = s[0]
-        table_name = s[1]
-    if len(s) > 2:
-        catalog_name = s[0]
-        schema_name = s[1]
-        table_name = '_'.join(s[2:])
+    # s = stream_name.split(separator)
+    # if len(s) == 2:
+    #     schema_name = s[0]
+    #     table_name = s[1]
+    # if len(s) > 2:
+    #     catalog_name = s[0]
+    #     schema_name = s[1]
+    #     table_name = '_'.join(s[2:])
 
     return {
         'catalog_name': catalog_name,
