@@ -74,6 +74,10 @@ def column_type(schema_property, with_length=True):
     elif 'boolean' in property_type:
         column_type = 'boolean'
 
+    if 'string' in property_type and schema_property.get('maxLength', 0) > 0:
+        column_type = 'character varying'
+        varchar_length = schema_property.get('maxLength', 0)
+
     # Add max length to column type if required
     if with_length:
         if column_type == 'character varying' and varchar_length > 0:
