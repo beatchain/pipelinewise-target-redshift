@@ -1,3 +1,18 @@
+1.6.0 (2020-08-03)
+-------------------
+
+- Add `aws_profile` option to use custom AWS profile
+
+1.5.0 (2020-07-23)
+-------------------
+
+- Add `s3_acl` option to support ACL for S3 upload
+
+1.4.1 (2020-06-17)
+-------------------
+
+- Switch jsonschema to use Draft7Validator
+
 1.4.0 (2019-05-11)
 -------------------
 

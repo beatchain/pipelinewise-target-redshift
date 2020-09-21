@@ -13,7 +13,7 @@ from decimal import Decimal
 from tempfile import mkstemp
 
 from joblib import Parallel, delayed, parallel_backend
-from jsonschema import Draft4Validator, FormatChecker
+from jsonschema import Draft7Validator, FormatChecker
 from singer import get_logger
 from itertools import islice
 
@@ -204,7 +204,7 @@ def persist_lines(config, lines, table_cache=None) -> None:
             stream = o['stream']
 
             schemas[stream] = float_to_decimal(o['schema'])
-            validators[stream] = Draft4Validator(schemas[stream], format_checker=FormatChecker())
+            validators[stream] = Draft7Validator(schemas[stream], format_checker=FormatChecker())
 
             # flush records from previous stream SCHEMA
             # if same stream has been encountered again, it means the schema might have been altered
@@ -345,17 +345,20 @@ def flush_streams(
 
 
 def load_stream_batch(stream, records_to_load, row_count, db_sync, delete_rows=False, compression=None, slices=None, temp_dir=None):
-    # Load into redshift
-    if row_count[stream] > 0:
-        flush_records(stream, records_to_load, row_count[stream], db_sync, compression, slices, temp_dir)
+    # Load into redshift                                            
+    try:
+        if row_count[stream] > 0:
+            flush_records(stream, records_to_load, row_count[stream], db_sync, compression, slices, temp_dir)
 
-        # Delete soft-deleted, flagged rows - where _sdc_deleted at is not null
-        if delete_rows:
-            db_sync.delete_rows(stream)
+            # Delete soft-deleted, flagged rows - where _sdc_deleted at is not null
+            if delete_rows:
+                db_sync.delete_rows(stream)
 
-        # reset row count for the current stream
-        row_count[stream] = 0
-
+            # reset row count for the current stream
+            row_count[stream] = 0
+    except Exception as e:
+        LOGGER.exception("Failed to load stream %s to Redshift", stream)
+        raise e
 
 def chunk_iterable(iterable, size):
     """Yield successive n-sized chunks from iterable. The last chunk is not padded"""
