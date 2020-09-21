@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import time
+import uuid
 
 import boto3
 import psycopg2
@@ -223,6 +224,8 @@ class DbSync:
         self.stream_schema_message = stream_schema_message
         self.table_cache = table_cache
 
+        self.uuid = str(uuid.uuid4()).replace('-', '_').lower()
+
         # logger to be used across the class's methods
         self.logger = get_logger('target_redshift')
 
@@ -351,8 +354,9 @@ class DbSync:
         table_name = stream_dict['table_name']
         rs_table_name = table_name.replace('.', '_').replace('-', '_').lower()
 
+        # Always use unique staging table to avoid serialization issues with concurrent ETL processes
         if is_stage:
-            rs_table_name = 'stg_{}'.format(rs_table_name)
+            rs_table_name = 'stg_{}_{}'.format(rs_table_name, self.uuid)
 
         if without_schema:
             return f'"{rs_table_name.upper()}"'
