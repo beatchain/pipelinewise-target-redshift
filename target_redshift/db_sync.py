@@ -622,14 +622,15 @@ class DbSync:
 
         # table_columns_cache is an optional pre-collected list of available objects in redshift
         if self.table_cache:
-            schema_rows = list(filter(lambda x: x['table_schema'] == schema_name.lower(), self.table_cache))
+            schema_rows = list(filter(lambda x: x['table_schema'] == schema_name.replace("\"", "").lower(), self.table_cache))
         # Query realtime if not pre-collected
         else:
             schema_rows = self.query(
                 'SELECT LOWER(schema_name) schema_name FROM information_schema.schemata WHERE LOWER(schema_name) = %s',
-                (schema_name.lower(),)
+                (schema_name.replace("\"", "").lower(),)
             )
 
+        self.logger.info("schema name {}".format(schema_name))
         if len(schema_rows) == 0:
             query = "CREATE SCHEMA IF NOT EXISTS {}".format(schema_name)
             self.logger.info("Schema '{}' does not exist. Creating... {}".format(schema_name, query))
@@ -652,9 +653,9 @@ class DbSync:
         sql = """SELECT LOWER(c.table_schema) table_schema, LOWER(c.table_name) table_name, c.column_name, c.data_type
             FROM information_schema.columns c
             WHERE 1=1"""
-        if table_schema is not None: sql = sql + " AND LOWER(c.table_schema) = '" + table_schema.lower() + "'"
+        if table_schema is not None: sql = sql + " AND LOWER(c.table_schema) = '" + table_schema.replace("\"", "").lower() + "'"
         if table_name is not None: sql = sql + " AND LOWER(c.table_name) = '" + table_name.replace("\"", "").lower() + "'"
-        if filter_schemas is not None: sql = sql + " AND LOWER(c.table_schema) IN (" + ', '.join("'{}'".format(s).lower() for s in filter_schemas) + ")"
+        if filter_schemas is not None: sql = sql + " AND LOWER(c.table_schema) IN (" + ', '.join("'{}'".format(s.replace("\"", "")).lower() for s in filter_schemas) + ")"
         return self.query(sql)
 
     def update_columns(self):
@@ -663,7 +664,7 @@ class DbSync:
         table_name = self.table_name(stream, is_stage=False, without_schema=True)
 
         if self.table_cache:
-            columns = list(filter(lambda x: x['table_schema'] == self.schema_name.lower() and
+            columns = list(filter(lambda x: x['table_schema'] == self.schema_name.replace("\"", "").lower() and
                                             f'"{x["table_name"].upper()}"' == table_name,
                                   self.table_cache))
         else:
@@ -751,11 +752,11 @@ class DbSync:
         table_name_with_schema = self.table_name(stream, is_stage=False, without_schema=False)
 
         if self.table_cache:
-            found_tables = list(filter(lambda x: x['table_schema'] == self.schema_name.lower() and
+            found_tables = list(filter(lambda x: x['table_schema'] == self.schema_name.replace("\"", "").lower() and
                                                  f'"{x["table_name"].upper()}"' == table_name,
                                        self.table_cache))
         else:
-            found_tables = [table for table in (self.get_tables(self.schema_name.lower()))
+            found_tables = [table for table in (self.get_tables(self.schema_name.replace("\"", "").lower()))
                             if f'"{table["table_name"].upper()}"' == table_name]
 
         # Create target table if not exists
