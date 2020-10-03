@@ -422,7 +422,7 @@ def flush_records(stream, records_to_load, row_count, db_sync, compression=None,
     # the copy key is the filename prefix without the chunk number
     copy_key = os.path.splitext(s3_keys[0])[0]
 
-    db_sync.load_csv(copy_key, row_count, size_bytes, compression)
+    db_sync.load_csv_serialize_safe(copy_key, row_count, size_bytes, compression)
     for csv_file in csv_files:
         os.remove(csv_file)
     for s3_key in s3_keys:

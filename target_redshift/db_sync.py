@@ -404,15 +404,20 @@ class DbSync:
         bucket = self.connection_config['s3_bucket']
         self.s3.delete_object(Bucket=bucket, Key=s3_key)
 
-    def execute_serialize_safe(self, cur, sql):
+    def load_csv_serialize_safe(self, s3_key, count, size_bytes, compression=False):
         attempt = 0
         while True:
             try:
-                cur.execute(sql)
+                self.load_csv(s3_key, count, size_bytes, compression)
                 break
             except Exception as ex:
-                if 'Serializable isolation violation on table' in str(ex) and attempt < 10:
-                    time.sleep(1)
+                message = str(ex)
+                if attempt == 10:
+                    self.logger.info('Max rety attempts reached')
+                    raise ex
+                elif 'Serializable isolation violation on table' in message:
+                    self.logger.info('Serializable isolation violation. Attempting again in 5 seconds')
+                    time.sleep(5)
                     attempt += 1
                 else:
                     raise ex
@@ -505,7 +510,7 @@ class DbSync:
                             self.primary_key_merge_condition()
                         )
                         self.logger.debug("Running query: {}".format(update_sql))
-                        self.execute_serialize_safe(cur, update_sql)
+                        cur.execute(update_sql)
                         updates = cur.rowcount
 
                     # Step 5/a/2: Insert new records
@@ -524,7 +529,7 @@ class DbSync:
                         ' AND '.join(['{}.{} IS NULL'.format(target_table, c) for c in primary_column_names(stream_schema_message)])
                     )
                     self.logger.debug("Running query: {}".format(insert_sql))
-                    self.execute_serialize_safe(cur, insert_sql)
+                    cur.execute(insert_sql)
                     inserts = cur.rowcount
 
                 # Step 5/b: Insert only if no primary key
@@ -539,7 +544,7 @@ class DbSync:
                         stage_table
                     )
                     self.logger.debug("Running query: {}".format(insert_sql))
-                    self.execute_serialize_safe(cur, insert_sql)
+                    cur.execute(insert_sql)
                     inserts = cur.rowcount
 
                 # Step 6: Drop stage table
